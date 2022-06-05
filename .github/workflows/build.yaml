@@ -1,0 +1,66 @@
+# vim: sw=1
+on:
+ push:
+  branches:
+  - develop
+
+env:
+ CARGO_TERM_COLOR: always
+
+jobs:
+ ffxiv-sqliteway:
+  runs-on: ubuntu-22.04
+  steps:
+  -
+   uses: actions/checkout@v3
+   with:
+    submodules: false
+  -
+   uses: actions/cache@v3
+   with:
+    path: |
+     ~/.cargo/registry/index/
+     ~/.cargo/registry/cache/
+     target/
+    key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}-r1
+
+  - run: cargo build --release
+
+  -
+   uses: actions/upload-artifact@v3
+   with:
+    name: ffxiv-sqliteway
+    path: target/release/ffxiv-sqliteway
+    if-no-files-found: error
+
+ ko-database:
+  runs-on: ubuntu-22.04
+  needs: ffxiv-sqliteway
+  steps:
+  -
+   uses: actions/checkout@v3
+   with:
+    submodules: true
+  -
+   uses: actions/download-artifact@v3
+   with:
+    name: ffxiv-sqliteway
+  -
+   run: >-
+    chmod +x ffxiv-sqliteway &&
+    ./ffxiv-sqliteway
+    --from=data/ko/csv/
+    --write-sql=create.sql
+    --write-command=csv-cmd
+  -
+   id: db
+   run: echo "::set-output name=filename::ko-$(cd data/ko/ && git tag).db"
+
+  - run: sqlite3 "${{ steps.db.outputs.filename }}" < create.sql
+  - run: sqlite3 "${{ steps.db.outputs.filename }}" < csv-cmd
+  -
+   uses: actions/upload-artifact@v3
+   with:
+    name: "${{ steps.db.outputs.filename }}"
+    path: "${{ steps.db.outputs.filename }}"
+    if-no-files-found: error
