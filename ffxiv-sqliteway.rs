@@ -1,7 +1,7 @@
 use std::{
 	collections::hash_map::HashMap,
 	fs, io,
-	path::{Path, PathBuf},
+	path::{Component, Path, PathBuf},
 };
 
 #[derive(PartialEq, Eq, Clone, Debug)]
@@ -67,8 +67,8 @@ fn read_column(
 	Ok(columns)
 }
 
-fn dir_list(root: impl AsRef<Path>) -> io::Result<HashMap<String, PathBuf>> {
-	let mut table_paths = HashMap::default();
+fn dir_list(root: impl AsRef<Path>) -> io::Result<HashMap<PathBuf, String>> {
+	let mut path_tables = HashMap::default();
 
 	let mut dirs = vec![root.as_ref().to_path_buf()];
 
@@ -83,14 +83,59 @@ fn dir_list(root: impl AsRef<Path>) -> io::Result<HashMap<String, PathBuf>> {
 			} else if ft.is_file() {
 				if let Ok(file_name) = entry.file_name().into_string() {
 					if let Some(name) = file_name.strip_suffix(".csv") {
-						table_paths.insert(name.to_string(), path);
+						path_tables.insert(path, name.to_string());
 					}
 				}
 			}
 		}
 	}
 
-	Ok(table_paths)
+	let mut common_root = None::<&Path>;
+
+	for path in path_tables.keys() {
+		if let Some(root) = common_root {
+			'a: for r in root.ancestors() {
+				if path.starts_with(r) {
+					common_root = Some(r);
+					break 'a;
+				}
+			}
+		} else {
+			common_root = path.parent();
+		}
+	}
+
+	if let Some(root) = common_root {
+		let root = root.to_path_buf().clone();
+		for (key, val) in path_tables.iter_mut() {
+			if let Some(path) =
+				key.parent().and_then(|v| v.strip_prefix(&root).ok())
+			{
+				let mut comps: Vec<String> = path
+					.components()
+					.filter_map(|v| {
+						if let Component::Normal(v) = v {
+							v.to_str().and_then(|v| {
+								if v.is_empty() {
+									None
+								} else {
+									Some(v.to_string())
+								}
+							})
+						} else {
+							None
+						}
+					})
+					.collect::<Vec<String>>();
+
+				comps.push(val.clone());
+
+				*val = comps.join("_");
+			}
+		}
+	}
+
+	Ok(path_tables)
 }
 
 fn sqlite_quote(s: &str) -> String {
@@ -127,7 +172,7 @@ fn main() -> anyhow::Result<()> {
 	let mut sqls = Vec::new();
 	let mut inserts = Vec::new();
 
-	for (table_name, path) in dir_list(args.from)? {
+	for (path, table_name) in dir_list(args.from)? {
 		// How dare you are putting 3000+ columns
 		if table_name == "CharaMakeType" {
 			continue;
