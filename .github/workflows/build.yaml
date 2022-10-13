@@ -54,13 +54,13 @@ jobs:
     --write-command=csv-cmd
   -
    id: db
-   run: echo "::set-output name=filename::ko-$(cd data/ko/ && git tag).db"
+   run: echo "db_filename=ko-$(cd data/ko/ && git tag).db" >> $GITHUB_ENV
 
-  - run: sqlite3 "${{ steps.db.outputs.filename }}" < create.sql
-  - run: sqlite3 "${{ steps.db.outputs.filename }}" < csv-cmd
+  - run: sqlite3 "${{ env.db_filename }}" < create.sql
+  - run: sqlite3 "${{ env.db_filename }}" < csv-cmd
   -
    uses: actions/upload-artifact@v3
    with:
-    name: "${{ steps.db.outputs.filename }}"
-    path: "${{ steps.db.outputs.filename }}"
+    name: "${{ env.db_filename }}"
+    path: "${{ env.db_filename }}"
     if-no-files-found: error
