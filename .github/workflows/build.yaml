@@ -40,7 +40,8 @@ jobs:
   -
    uses: actions/checkout@v3
    with:
-    submodules: true
+    submodules: false
+  - run: git submodule --init data/ko
   -
    uses: actions/download-artifact@v3
    with:
