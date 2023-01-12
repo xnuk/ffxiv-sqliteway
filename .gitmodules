@@ -2,7 +2,7 @@
 
 [submodule "ffxiv-datamining-ko"]
 path = data/ko
-url = git@github.com:Ra-Workspace/ffxiv-datamining-ko.git
+url = https://github.com/Ra-Workspace/ffxiv-datamining-ko.git
 branch = master
 shallow = true
 update = checkout
