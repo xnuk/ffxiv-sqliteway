@@ -7,3 +7,11 @@ branch = master
 shallow = true
 update = checkout
 fetchRecurseSubmodules = false
+
+[submodule "ffxiv-datamining-global"]
+path = data/global
+url = https://github.com/xivapi/ffxiv-datamining.git
+branch = master
+shallow = true
+update = checkout
+fetchRecurseSubmodules = false
