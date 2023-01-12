@@ -33,7 +33,10 @@ jobs:
     path: target/release/ffxiv-sqliteway
     if-no-files-found: error
 
- ko-database:
+ database:
+  strategy:
+   matrix:
+    distro: [ko, global]
   runs-on: ubuntu-22.04
   needs: ffxiv-sqliteway
   steps:
@@ -41,7 +44,7 @@ jobs:
    uses: actions/checkout@v3
    with:
     submodules: false
-  - run: git submodule --init data/ko
+  - run: git submodule --init data/${{ matrix.distro }}/
   -
    uses: actions/download-artifact@v3
    with:
@@ -50,12 +53,15 @@ jobs:
    run: >-
     chmod +x ffxiv-sqliteway &&
     ./ffxiv-sqliteway
-    --from=data/ko/csv/
+    --from=data/${{ matrix.distro }}/csv/
     --write-sql=create.sql
     --write-command=csv-cmd
   -
    id: db
-   run: echo "db_filename=ko-$(cd data/ko/ && git tag).db" >> $GITHUB_ENV
+   run: >-
+    echo "db_filename=${{ matrix.distro }}-$(cd data/${{ matrix.distro }}/
+    && git tag).db"
+    >> $GITHUB_ENV
 
   - run: sqlite3 "${{ env.db_filename }}" < create.sql
   - run: sqlite3 "${{ env.db_filename }}" < csv-cmd
