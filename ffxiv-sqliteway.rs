@@ -18,7 +18,7 @@ fn to_column_type(s: String) -> ColumnType {
 	if s == "Row" {
 		ColumnType::Type(s)
 	} else if let Some(c) = first {
-		if ('a'..='z').contains(&c) {
+		if c.is_ascii_lowercase() {
 			ColumnType::Type(s)
 		} else {
 			ColumnType::Foreign(s)
@@ -166,6 +166,8 @@ fn write_lines(
 	Ok(())
 }
 
+const TOO_LONG_TABLE_NAMES: [&str; 2] = ["CharaMakeType", "SpecialShop"];
+
 fn main() -> anyhow::Result<()> {
 	let args: Args = clap::Parser::parse();
 
@@ -173,8 +175,8 @@ fn main() -> anyhow::Result<()> {
 	let mut inserts = Vec::new();
 
 	for (path, table_name) in dir_list(args.from)? {
-		// How dare you are putting 3000+ columns
-		if table_name == "CharaMakeType" {
+		// How dare you are putting 2000+ columns
+		if TOO_LONG_TABLE_NAMES.contains(&table_name.as_str()) {
 			continue;
 		}
 
